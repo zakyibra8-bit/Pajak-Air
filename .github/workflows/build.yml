@@ -1,0 +1,54 @@
+name: Build APK Pajak Air
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - utama
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ambil repository
+        uses: actions/checkout@v4
+
+      - name: Siapkan Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Siapkan Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Ekstrak project Android
+        run: |
+          mkdir -p project
+          unzip -q *.zip -d project
+          echo "Isi project:"
+          find project -maxdepth 3 -type f | head -50
+
+      - name: Cari folder project
+        run: |
+          SETTINGS=$(find project -name "settings.gradle.kts" -o -name "settings.gradle" | head -1)
+          PROJECT_DIR=$(dirname "$SETTINGS")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Project ditemukan di: $PROJECT_DIR"
+
+      - name: Siapkan Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug
+
+      - name: Simpan APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PajakAir-APK
+          path: '**/build/outputs/apk/debug/*.apk'
